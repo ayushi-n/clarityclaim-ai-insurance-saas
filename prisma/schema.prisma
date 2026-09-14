@@ -1,0 +1,176 @@
+// ClarityClaim data model
+// Every claim-bearing table is scoped by organizationId so one insurer
+// never sees another insurer's book of business.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  ADJUSTER
+  REVIEWER
+}
+
+enum ClaimStatus {
+  SUBMITTED
+  ANALYZING
+  NEEDS_EVIDENCE
+  IN_REVIEW
+  APPROVED
+  DENIED
+  ESCALATED
+}
+
+enum EvidenceType {
+  DOCUMENT
+  IMAGE
+  AUDIO
+  VIDEO
+}
+
+enum AgentName {
+  DOCUMENT_AGENT
+  VISION_AGENT
+  AUDIO_AGENT
+  CONTRADICTION_ENGINE
+  DEBATE_ENGINE
+  ADJUDICATOR
+  MISSING_EVIDENCE_AGENT
+}
+
+enum ReviewDecision {
+  PENDING
+  UPHELD
+  OVERTURNED
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  planTier  String   @default("starter") // starter | growth | scale
+  createdAt DateTime @default(now())
+
+  users        User[]
+  claims       Claim[]
+  notifications Notification[]
+}
+
+model User {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  email          String       @unique
+  passwordHash   String
+  role           Role         @default(ADJUSTER)
+  createdAt      DateTime     @default(now())
+
+  reviewedClaims HumanReview[]
+  notifications  Notification[]
+}
+
+model Claim {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  claimNumber    String       @unique
+  claimantName   String
+  policyNumber   String
+  incidentType   String
+  incidentDate   DateTime
+  description    String
+  claimedAmount  Float
+  status         ClaimStatus  @default(SUBMITTED)
+  clarityScore   Int?         // 0-100 confidence score produced by the adjudicator
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  evidence       Evidence[]
+  findings       AgentFinding[]
+  contradictions Contradiction[]
+  decision       Decision?
+  humanReviews   HumanReview[]
+  notifications  Notification[]
+
+  @@index([organizationId, status])
+}
+
+model Evidence {
+  id        String       @id @default(cuid())
+  claimId   String
+  claim     Claim        @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  type      EvidenceType
+  fileName  String
+  fileUrl   String
+  uploadedAt DateTime    @default(now())
+
+  findings  AgentFinding[]
+}
+
+model AgentFinding {
+  id         String     @id @default(cuid())
+  claimId    String
+  claim      Claim      @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  evidenceId String?
+  evidence   Evidence?  @relation(fields: [evidenceId], references: [id])
+  agent      AgentName
+  summary    String
+  confidence Int        // 0-100
+  rawOutput  String?    // full model reasoning, stored for the audit trail
+  createdAt  DateTime   @default(now())
+}
+
+model Contradiction {
+  id          String   @id @default(cuid())
+  claimId     String
+  claim       Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  sourceA     String
+  sourceB     String
+  description String
+  severity    Int      // 1-5
+  createdAt   DateTime @default(now())
+}
+
+model Decision {
+  id             String   @id @default(cuid())
+  claimId        String   @unique
+  claim          Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  outcome        String   // approve | deny | escalate
+  payoutAmount   Float?
+  reasoning      String
+  confidence     Int
+  requiresHuman  Boolean  @default(false)
+  createdAt      DateTime @default(now())
+}
+
+model HumanReview {
+  id          String         @id @default(cuid())
+  claimId     String
+  claim       Claim          @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  reviewerId  String
+  reviewer    User           @relation(fields: [reviewerId], references: [id])
+  decision    ReviewDecision @default(PENDING)
+  notes       String?
+  createdAt   DateTime       @default(now())
+  resolvedAt  DateTime?
+}
+
+model Notification {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id])
+  claimId        String?
+  claim          Claim?       @relation(fields: [claimId], references: [id])
+  message        String
+  read           Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+}
