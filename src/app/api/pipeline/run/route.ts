@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { runPipelineForClaim } from "@/lib/run-pipeline";
 
-async function handler(req: Request) {
+async function handler(req: NextRequest) {
   const { claimId } = await req.json();
 
   try {
@@ -13,4 +13,17 @@ async function handler(req: Request) {
   }
 }
 
-export const POST = process.env.QSTASH_TOKEN ? verifySignatureAppRouter(handler) : handler;
+export async function POST(req: NextRequest) {
+  if (!process.env.QSTASH_TOKEN) {
+    return handler(req);
+  }
+
+  if (!process.env.QSTASH_CURRENT_SIGNING_KEY || !process.env.QSTASH_NEXT_SIGNING_KEY) {
+    return NextResponse.json(
+      { error: "QStash signing keys are not configured" },
+      { status: 500 },
+    );
+  }
+
+  return verifySignatureAppRouter(handler)(req);
+}

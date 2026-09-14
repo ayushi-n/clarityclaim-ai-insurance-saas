@@ -78,7 +78,7 @@ Demo login after seeding: `demo@meridianmutual.com` / `clarity-demo-2026`.
 - `ANTHROPIC_API_KEY` for the pipeline to actually reason over claims
 - `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `NEXT_PUBLIC_STRIPE_PRICE_GROWTH` for billing
 - `UPLOADTHING_TOKEN` for evidence uploads
-- `QSTASH_TOKEN` (+ `UPSTASH_REDIS_REST_URL/TOKEN` if you add rate limiting) to queue the pipeline properly in production
+- `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, and `QSTASH_NEXT_SIGNING_KEY` (+ `UPSTASH_REDIS_REST_URL/TOKEN` if you add rate limiting) to queue and verify the pipeline properly in production
 
 ## Folder map
 
