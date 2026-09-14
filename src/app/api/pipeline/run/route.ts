@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { runPipelineForClaim } from "@/lib/run-pipeline";
 
-async function handler(req: NextRequest) {
+async function handler(req: NextRequest) 
+{
   const { claimId } = await req.json();
 
   try {
