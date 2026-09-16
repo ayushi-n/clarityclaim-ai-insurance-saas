@@ -14,7 +14,6 @@ export default function LandingPage() {
       <HowItWorks />
       <LiveDemo />
       <Features />
-      <Pricing />
       <ClosingCTA />
       <Footer />
     </main>
