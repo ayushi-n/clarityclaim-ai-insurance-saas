@@ -20,10 +20,20 @@ const demoByType = [
   { type: "Medical", count: 6 },
 ];
 
+export const dynamic = "force-dynamic";
+
 export default async function ReportsPage() {
-  const session = await getServerSession(authOptions);
-  const aggregates = await getReportAggregates(session!.user.organizationId);
-  const usingSampleData = aggregates.byStatus.length === 0;
+  const session = await getServerSession(authOptions).catch(() => null);
+  let aggregates = { byStatus: demoByStatus, byType: demoByType };
+  let usingSampleData = true;
+
+  if (session?.user?.organizationId) {
+    try {
+      const databaseAggregates = await getReportAggregates(session.user.organizationId);
+      aggregates = databaseAggregates;
+      usingSampleData = databaseAggregates.byStatus.length === 0;
+    } catch {}
+  }
 
   return (
     <div className="flex-1">

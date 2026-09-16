@@ -9,16 +9,28 @@ import { OverviewChart } from "@/components/dashboard/OverviewChart";
 import { SampleDataBanner } from "@/components/dashboard/SampleDataBanner";
 import { FileStack, Clock, ShieldCheck, AlertTriangle } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function OverviewPage() {
-  const session = await getServerSession(authOptions);
-  const organizationId = session!.user.organizationId;
+  const session = await getServerSession(authOptions).catch(() => null);
+  const organizationId = session?.user?.organizationId;
 
-  const [claims, stats] = await Promise.all([
-    getClaimsForOrg(organizationId),
-    getDashboardStats(organizationId),
-  ]);
+  let claims = mockClaims;
+  let stats = { open: 0, approved: 0, awaitingReview: 0, total: 0 };
+  let usingSampleData = true;
 
-  const usingSampleData = claims.length === 0;
+  if (organizationId) {
+    try {
+      const [databaseClaims, databaseStats] = await Promise.all([
+        getClaimsForOrg(organizationId),
+        getDashboardStats(organizationId),
+      ]);
+      claims = databaseClaims;
+      stats = databaseStats;
+      usingSampleData = databaseClaims.length === 0;
+    } catch {}
+  }
+
   const rows = usingSampleData ? mockClaims : claims;
   const approvalRate = usingSampleData
     ? 71
@@ -28,7 +40,7 @@ export default async function OverviewPage() {
 
   return (
     <div className="flex-1">
-      <Topbar title="Overview" subtitle={session!.user.organizationName} />
+      <Topbar title="Overview" subtitle={session?.user?.organizationName ?? "Demo workspace"} />
 
       <div className="space-y-8 p-6">
         {usingSampleData && <SampleDataBanner />}

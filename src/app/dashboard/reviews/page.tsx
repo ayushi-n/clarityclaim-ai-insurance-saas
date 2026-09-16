@@ -11,10 +11,21 @@ import { AlertTriangle } from "lucide-react";
 
 const reviewStatuses = new Set(["ESCALATED", "IN_REVIEW", "NEEDS_EVIDENCE"]);
 
+export const dynamic = "force-dynamic";
+
 export default async function ReviewsPage() {
-  const session = await getServerSession(authOptions);
-  const claims = await getClaimsForOrg(session!.user.organizationId);
-  const usingSampleData = claims.length === 0;
+  const session = await getServerSession(authOptions).catch(() => null);
+  let claims = mockClaims;
+  let usingSampleData = true;
+
+  if (session?.user?.organizationId) {
+    try {
+      const databaseClaims = await getClaimsForOrg(session.user.organizationId);
+      claims = databaseClaims;
+      usingSampleData = databaseClaims.length === 0;
+    } catch {}
+  }
+
   const source = usingSampleData ? mockClaims : claims;
   const queue = source.filter((c) => reviewStatuses.has(c.status));
 
