@@ -14,9 +14,8 @@ brand reference image.
 | UI | React 18, Tailwind CSS, Framer Motion, Recharts |
 | Auth | NextAuth (credentials provider) |
 | Database | PostgreSQL + Prisma |
-| LLM pipeline | Anthropic API (`src/lib/anthropic-pipeline.ts`) |
-| Payments | Stripe (stubbed — add keys to enable) |
-| File uploads | UploadThing (stubbed — add keys to enable) |
+| LLM pipeline | Google Gemini API (`src/lib/anthropic-pipeline.ts`) |
+| File uploads | UploadThing |
 | Background jobs | Upstash Redis + QStash (for the 5+ sequential agent calls per claim) |
 
 ## Design
@@ -60,10 +59,8 @@ Demo login after seeding: `demo@meridianmutual.com` / `clarity-demo-2026`.
 - `POST/GET /api/uploadthing` — evidence file uploads, tied to a claim
   via an `x-claim-id` header and written to the `Evidence` table on
   completion; wired into the claim-intake page's dropzone
-- `POST /api/stripe/checkout`, `POST /api/stripe/webhook` — Growth-plan
-  checkout and the webhook that flips `Organization.planTier`
 - `src/lib/anthropic-pipeline.ts` — the six agents from the original
-  `agents/*.py` files, ported to typed functions that call the Anthropic
+  `agents/*.py` files, ported to typed functions that call the Gemini
   API directly
 
 **Demo data, ready to swap for live queries:**
@@ -75,8 +72,7 @@ Demo login after seeding: `demo@meridianmutual.com` / `clarity-demo-2026`.
   dashboard to reflect real claims instead of the demo set.
 
 **Needs your API keys to go live:**
-- `ANTHROPIC_API_KEY` for the pipeline to actually reason over claims
-- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `NEXT_PUBLIC_STRIPE_PRICE_GROWTH` for billing
+- `GEMINI_API_KEY` for the pipeline to actually reason over claims
 - `UPLOADTHING_TOKEN` for evidence uploads
 - `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, and `QSTASH_NEXT_SIGNING_KEY` (+ `UPSTASH_REDIS_REST_URL/TOKEN` if you add rate limiting) to queue and verify the pipeline properly in production
 
