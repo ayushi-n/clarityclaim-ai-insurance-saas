@@ -40,7 +40,7 @@ export const ourFileRouter = {
           claimId: metadata.claimId,
           type,
           fileName: file.name,
-          fileUrl: file.url,
+          fileUrl: file.ufsUrl,
         },
       });
 
