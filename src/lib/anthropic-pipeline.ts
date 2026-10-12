@@ -4,13 +4,12 @@
 // missing_evidence_agent.py) into typed pipeline stages callable
 // from a Next.js API route / background worker.
 //
-// Uses Google Gemini's free API (via its OpenAI-compatible endpoint)
+// Uses Google Gemini's free API (via its native generateContent endpoint)
 // instead of a paid provider, so this runs at zero cost. Get a free key
 // at aistudio.google.com and set GEMINI_API_KEY in .env.
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const GEMINI_BASE_URL =
-  "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 export type AgentStage =
   | "DOCUMENT_AGENT"
@@ -49,25 +48,25 @@ async function runAgent(
   let lastError = "";
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const response = await fetch(GEMINI_BASE_URL, {
+    const response = await fetch(GEMINI_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        "x-goog-api-key": apiKey,
       },
       body: JSON.stringify({
-        model: GEMINI_MODEL,
-        max_tokens: 512,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: prompt },
-        ],
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 1024 },
       }),
     });
 
     if (response.ok) {
       const data = await response.json();
-      const text: string = data.choices?.[0]?.message?.content ?? "";
+      const text: string = (data.candidates?.[0]?.content?.parts ?? [])
+        .map((p: { text?: string }) => p.text ?? "")
+        .join("")
+        .trim();
 
       // Agents are prompted to end with a line "CONFIDENCE: <0-100>"
       const match = text.match(/CONFIDENCE:\s*(\d{1,3})/i);
@@ -88,7 +87,7 @@ async function runAgent(
 
     // Rate limited — back off and retry
     if (response.status === 429 && attempt < maxAttempts) {
-      const waitMatch = errText.match(/try again in ([\d.]+)s/i);
+      const waitMatch = errText.match(/(?:try again in|retryDelay"?:\s*"?)([\d.]+)s/i);
       const waitSeconds = waitMatch ? parseFloat(waitMatch[1]) : 3;
       await sleep(Math.ceil(waitSeconds * 1000) + 500);
       continue;
