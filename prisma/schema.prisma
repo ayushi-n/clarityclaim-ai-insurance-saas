@@ -38,6 +38,7 @@ enum EvidenceType {
 enum AgentName {
   DOCUMENT_AGENT
   VISION_AGENT
+  VIDEO_AGENT
   AUDIO_AGENT
   CONTRADICTION_ENGINE
   DEBATE_ENGINE
@@ -148,6 +149,7 @@ model Decision {
   reasoning      String
   confidence     Int
   requiresHuman  Boolean  @default(false)
+  scoreBreakdown Json?    // coverage / consistency / contradictions / agreement / notes
   createdAt      DateTime @default(now())
 }
 
