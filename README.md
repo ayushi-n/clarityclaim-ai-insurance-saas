@@ -14,7 +14,7 @@ brand reference image.
 | UI | React 18, Tailwind CSS, Framer Motion, Recharts |
 | Auth | NextAuth (credentials provider) |
 | Database | PostgreSQL + Prisma |
-| LLM pipeline | Google Gemini API (`src/lib/anthropic-pipeline.ts`) |
+| LLM pipeline | Google Gemini API (`src/lib/ai-pipeline.ts`) |
 | File uploads | UploadThing |
 | Background jobs | Upstash Redis + QStash (for the 5+ sequential agent calls per claim) |
 
@@ -59,7 +59,7 @@ Demo login after seeding: `demo@meridianmutual.com` / `clarity-demo-2026`.
 - `POST/GET /api/uploadthing` — evidence file uploads, tied to a claim
   via an `x-claim-id` header and written to the `Evidence` table on
   completion; wired into the claim-intake page's dropzone
-- `src/lib/anthropic-pipeline.ts` — the six agents from the original
+- `src/lib/ai-pipeline.ts` — the six agents from the original
   `agents/*.py` files, ported to typed functions that call the Gemini
   API directly
 
@@ -83,7 +83,7 @@ src/app/                landing, login, signup, dashboard/*, api/*
 src/components/landing   marketing sections
 src/components/auth      login/signup shell + form field
 src/components/dashboard sidebar, topbar, tables, charts, decision panel
-src/lib/                 db.ts, auth.ts, anthropic-pipeline.ts, mock-data.ts
+src/lib/                 db.ts, auth.ts, ai-pipeline.ts, mock-data.ts
 prisma/schema.prisma     data model
 legacy-streamlit/        original Streamlit app, kept for reference
 ```
