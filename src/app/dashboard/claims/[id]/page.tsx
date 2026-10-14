@@ -8,6 +8,7 @@ import { ClarityGauge } from "@/components/dashboard/ClarityGauge";
 import { AgentTimeline } from "@/components/dashboard/AgentTimeline";
 import { DecisionPanel } from "@/components/dashboard/DecisionPanel";
 import { SampleDataBanner } from "@/components/dashboard/SampleDataBanner";
+import { RerunAnalysisButton } from "@/components/dashboard/RerunAnalysisButton";
 import { mockClaims, mockFindings, ClaimStatus } from "@/lib/mock-data";
 import { formatCurrency, formatDate, initials } from "@/lib/utils";
 import { FileText, ImageIcon, Mic, Film, AlertTriangle, User, Calendar, Hash } from "lucide-react";
@@ -64,9 +65,14 @@ export default async function ClaimDetailPage({ params }: { params: { id: string
                         rel="noreferrer"
                         className="flex items-center gap-3 rounded-xl border border-pond-50 bg-clarity-200/50 px-4 py-3 hover:bg-clarity-200"
                       >
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-moss-50 text-moss-600">
-                          <Icon className="h-4 w-4" />
-                        </div>
+                        {e.type === "IMAGE" ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={e.fileUrl} alt={e.fileName} className="h-9 w-9 shrink-0 rounded-lg object-cover" />
+                        ) : (
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-moss-50 text-moss-600">
+                            <Icon className="h-4 w-4" />
+                          </div>
+                        )}
                         <span className="truncate text-sm text-pond-500">{e.fileName}</span>
                       </a>
                     );
@@ -76,11 +82,17 @@ export default async function ClaimDetailPage({ params }: { params: { id: string
             </div>
 
             <div className="rounded-2xl border border-pond-100 bg-clarity-100 p-6">
-              <h2 className="mb-6 font-display text-lg text-pond-500">Agent pipeline trace</h2>
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+                <h2 className="font-display text-lg text-pond-500">Agent pipeline trace</h2>
+                <RerunAnalysisButton
+                  claimId={realClaim.id}
+                  label={realClaim.findings.length === 0 ? "Run analysis" : "Re-run analysis"}
+                />
+              </div>
               {realClaim.findings.length === 0 ? (
                 <p className="text-sm text-pond-400">
-                  Analysis hasn't run yet. If this claim was just created, the pipeline usually finishes within a
-                  few minutes.
+                  Analysis hasn't run yet. Upload the evidence, then click "Run analysis" — the agents read every
+                  document, photo, audio and video file.
                 </p>
               ) : (
                 <AgentTimeline findings={realClaim.findings} />
@@ -114,9 +126,10 @@ export default async function ClaimDetailPage({ params }: { params: { id: string
                 {realClaim.clarityScore === null
                   ? "Awaiting the agent pipeline's first pass."
                   : realClaim.clarityScore >= 70
-                    ? "Evidence is consistent across every agent."
+                    ? "Evidence is strong and consistent across sources."
                     : "Some findings need a closer look before payout."}
               </p>
+              <ScoreBreakdownList breakdown={realClaim.decision?.scoreBreakdown as any} />
             </div>
 
             <DecisionPanel
@@ -276,6 +289,45 @@ function ClaimHeader({
           <p className="mt-1 font-display text-lg text-pond-500">{contradictionCount}</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ScoreBreakdownList({
+  breakdown,
+}: {
+  breakdown?: { coverage: number; consistency: number; contradictions: number; agreement: number; notes?: string[] } | null;
+}) {
+  if (!breakdown) return null;
+  const rows = [
+    { label: "Evidence coverage", value: breakdown.coverage, max: 25 },
+    { label: "Consistency with claim", value: breakdown.consistency, max: 35 },
+    { label: "Free of contradictions", value: breakdown.contradictions, max: 25 },
+    { label: "Agent agreement", value: breakdown.agreement, max: 15 },
+  ];
+  return (
+    <div className="mt-5 w-full space-y-2.5 border-t border-pond-50 pt-4 text-left">
+      <p className="text-xs font-semibold uppercase tracking-wide text-pond-400">How the score was computed</p>
+      {rows.map((r) => (
+        <div key={r.label}>
+          <div className="flex justify-between text-xs text-pond-500">
+            <span>{r.label}</span>
+            <span className="font-mono">
+              {r.value}/{r.max}
+            </span>
+          </div>
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-clarity-200">
+            <div className="h-full rounded-full bg-moss-500" style={{ width: `${Math.round((r.value / r.max) * 100)}%` }} />
+          </div>
+        </div>
+      ))}
+      {breakdown.notes && breakdown.notes.length > 0 && (
+        <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-pond-400">
+          {breakdown.notes.map((n) => (
+            <li key={n}>{n}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
