@@ -5,7 +5,7 @@ const qstash = process.env.QSTASH_TOKEN ? new Client({ token: process.env.QSTASH
 /**
  * Enqueues an async job that runs the full agent pipeline for a claim.
  * QStash calls back into POST /api/pipeline/run, which is a plain request
- * handler but is invoked out-of-band — so the 5+ sequential Anthropic
+ * handler but is invoked out-of-band — so the sequential Gemini agent
  * calls never block the original "create claim" request.
  *
  * Falls back to firing the request directly (no queue, no retries) when
