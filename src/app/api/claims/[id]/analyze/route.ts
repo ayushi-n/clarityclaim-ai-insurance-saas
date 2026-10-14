@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { runPipelineForClaim } from "@/lib/run-pipeline";
 
+// The pipeline downloads every evidence file and makes several AI calls.
+export const maxDuration = 300;
+
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
