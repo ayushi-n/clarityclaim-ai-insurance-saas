@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { runPipelineForClaim } from "@/lib/run-pipeline";
 
+// The pipeline downloads every evidence file and makes several AI calls.
+export const maxDuration = 300;
+
 async function handler(req: NextRequest) 
 {
   const { claimId } = await req.json();
