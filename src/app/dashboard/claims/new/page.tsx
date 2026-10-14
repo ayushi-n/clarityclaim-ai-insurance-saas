@@ -6,7 +6,7 @@ import { Topbar } from "@/components/dashboard/Topbar";
 import { Field } from "@/components/auth/Field";
 import { Button } from "@/components/ui/Button";
 import { useUploadThing } from "@/lib/uploadthing";
-import { FileText, ImageIcon, Mic, Sparkles, ArrowRight, CheckCircle2, UploadCloud, Loader2 } from "lucide-react";
+import { FileText, ImageIcon, Mic, Film, Sparkles, ArrowRight, CheckCircle2, UploadCloud, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function NewClaimPage() {
@@ -20,6 +20,7 @@ export default function NewClaimPage() {
   const [hasDocument, setHasDocument] = useState(false);
   const [hasPhoto, setHasPhoto] = useState(false);
   const [hasAudio, setHasAudio] = useState(false);
+  const [hasVideo, setHasVideo] = useState(false);
 
   async function handleDetailsSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -57,8 +58,10 @@ export default function NewClaimPage() {
 
   const [running, setRunning] = useState(false);
 
-  const allEvidenceUploaded = hasDocument && hasPhoto && hasAudio;
-  const uploadedCount = [hasDocument, hasPhoto, hasAudio].filter(Boolean).length;
+  // A document plus a photo or video is the minimum; audio and video are optional
+  // but improve the clarity score (the missing-evidence agent flags gaps).
+  const allEvidenceUploaded = hasDocument && (hasPhoto || hasVideo);
+  const uploadedCount = [hasDocument, hasPhoto, hasAudio, hasVideo].filter(Boolean).length;
 
   async function handleSendToPipeline() {
     if (!claimId) return;
@@ -122,25 +125,26 @@ export default function NewClaimPage() {
           <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-moss-200 bg-moss-50 px-5 py-3 text-sm text-moss-700">
               <span>
-                Claim <span className="font-mono font-medium">{claimNumber}</span> created. Upload all three types of
-                evidence below to continue.
+                Claim <span className="font-mono font-medium">{claimNumber}</span> created. Upload the
+                evidence below. A document and a photo or video are required; audio and video improve the score.
               </span>
-              <span className="font-mono text-xs text-moss-600">{uploadedCount}/3 uploaded</span>
+              <span className="font-mono text-xs text-moss-600">{uploadedCount}/4 uploaded</span>
             </div>
 
             <div>
               <h2 className="font-display text-lg text-pond-500">Evidence</h2>
               <p className="mt-1 text-sm text-pond-400">
-                Each type below is required — the matching agent picks it up automatically.
+                Each file is read by its matching agent — documents, photos, audio and video are all analyzed directly.
               </p>
 
-              <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-3">
+              <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
                 <EvidenceCard
                   icon={FileText}
                   accent="midnight"
                   title="Document"
                   hint="Policy PDF, repair estimate, police report"
-                  uploadPrompt="Upload the claim document"
+                  uploadPrompt="PDF or image of the document"
+                  accept="application/pdf,image/*"
                   claimId={claimId}
                   done={hasDocument}
                   onDone={() => setHasDocument(true)}
@@ -151,7 +155,9 @@ export default function NewClaimPage() {
                   accent="moss"
                   title="Photo"
                   hint="Damage photos, before/after shots"
-                  uploadPrompt="Upload vehicle images"
+                  uploadPrompt="JPG, PNG or HEIC photo"
+                  accept="image/*"
+                  optional={hasVideo}
                   claimId={claimId}
                   done={hasPhoto}
                   onDone={() => setHasPhoto(true)}
@@ -162,10 +168,25 @@ export default function NewClaimPage() {
                   accent="rosy"
                   title="Audio statement"
                   hint="Recorded statement from the claimant"
-                  uploadPrompt="Upload call recordings or audio description"
+                  uploadPrompt="MP3, WAV or M4A recording"
+                  accept="audio/*"
+                  optional
                   claimId={claimId}
                   done={hasAudio}
                   onDone={() => setHasAudio(true)}
+                  onError={(m) => setError(m)}
+                />
+                <EvidenceCard
+                  icon={Film}
+                  accent="midnight"
+                  title="Video"
+                  hint="Walk-around of the damage, dashcam or CCTV clip"
+                  uploadPrompt="MP4, MOV or WEBM (up to 64 MB)"
+                  accept="video/*"
+                  optional
+                  claimId={claimId}
+                  done={hasVideo}
+                  onDone={() => setHasVideo(true)}
                   onError={(m) => setError(m)}
                 />
               </div>
@@ -176,7 +197,7 @@ export default function NewClaimPage() {
 
               {running && (
                 <div className="mt-4 rounded-lg bg-midnight-50 px-4 py-2.5 text-sm text-midnight-500">
-                  Six agents are running one after another — this usually takes 20-40 seconds. Don't close this tab.
+                  The agents are reading every file and cross-checking the claim — this usually takes 1–3 minutes. Don't close this tab.
                 </div>
               )}
             </div>
@@ -195,7 +216,7 @@ export default function NewClaimPage() {
               ) : (
                 <>
                   <Sparkles className="h-4 w-4" />
-                  {allEvidenceUploaded ? "Send to the pipeline" : "Upload all three to continue"}
+                  {allEvidenceUploaded ? "Send to the pipeline" : "Upload a document and a photo or video to continue"}
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </>
               )}
@@ -237,6 +258,8 @@ function EvidenceCard({
   title,
   hint,
   uploadPrompt,
+  accept,
+  optional = false,
   claimId,
   done,
   onDone,
@@ -247,6 +270,8 @@ function EvidenceCard({
   title: string;
   hint: string;
   uploadPrompt: string;
+  accept?: string;
+  optional?: boolean;
   claimId: string;
   done: boolean;
   onDone: () => void;
@@ -288,7 +313,9 @@ function EvidenceCard({
             <CheckCircle2 className="h-4 w-4" /> Uploaded
           </span>
         ) : (
-          <span className="text-xs font-medium text-rosy-500">Required</span>
+          <span className={cn("text-xs font-medium", optional ? "text-pond-400" : "text-rosy-500")}>
+            {optional ? "Optional" : "Required"}
+          </span>
         )}
       </div>
 
@@ -324,6 +351,7 @@ function EvidenceCard({
             <input
               ref={inputRef}
               type="file"
+              accept={accept}
               className="hidden"
               onChange={(e) => {
                 if (e.target.files?.length) handleFiles(e.target.files);
